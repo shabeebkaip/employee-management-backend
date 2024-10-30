@@ -8,6 +8,7 @@ import {
   deleteEmployee,
   exportEmployees,
   importEmployees,
+  downloadTemplate,
 } from "./controllers/employee.js";
 
 const router = express.Router();
@@ -24,4 +25,5 @@ router.put("/employees/:id", updateEmployee);
 router.delete("/employees/:id", deleteEmployee);
 router.post("/employees/import", upload.single("file"), importEmployees);
 router.get("/employees/export", exportEmployees);
+router.get("/employees/template", downloadTemplate);
 export default router;

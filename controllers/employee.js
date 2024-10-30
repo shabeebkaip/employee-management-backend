@@ -132,8 +132,8 @@ const deleteEmployee = async (req, res) => {
   }
 };
 
-// New API for importing employees from an Excel/CSV file
 const importEmployees = async (req, res) => {
+  console.log(req.file);
   try {
     // Check if file is uploaded
     if (!req.file) {
@@ -144,8 +144,9 @@ const importEmployees = async (req, res) => {
       });
     }
 
-    // Read the file
-    const workbook = XLSX.readFile(req.file.path);
+    // Read the file using path module for compatibility
+    const filePath = path.resolve(req.file.path);
+    const workbook = XLSX.readFile(filePath);
     const sheetName = workbook.SheetNames[0]; // First sheet
     const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
@@ -164,7 +165,9 @@ const importEmployees = async (req, res) => {
           nationality,
           passportNumber,
           address,
+          employee_id,
         } = item;
+
         // Check required fields
         if (
           !email ||
@@ -195,6 +198,7 @@ const importEmployees = async (req, res) => {
                 nationality,
                 passportNumber: passportNumber || null,
                 address: address || null,
+                employee_id,
               },
             },
             upsert: true,
@@ -203,15 +207,25 @@ const importEmployees = async (req, res) => {
       })
       .filter(Boolean);
 
-    if (operations.length > 0) {
-      await Employee.bulkWrite(operations);
-    }
-    fs.unlinkSync(req.file.path);
+    // Log operations for debugging
+    console.log(operations);
 
+    // Perform bulkWrite operation
+    if (operations.length > 0) {
+      const result = await Employee.bulkWrite(operations);
+      console.log(result); // Log result to verify insertions and updates
+    }
+
+    // Cleanup uploaded file
+    fs.unlinkSync(filePath);
+
+    // Return updated list of employees
+    const employees = await Employee.find();
     res.status(200).json({
       message: "Employees imported and database updated successfully",
       success: true,
       statusCode: 200,
+      data: employees,
     });
   } catch (error) {
     res.status(500).json({
@@ -222,7 +236,6 @@ const importEmployees = async (req, res) => {
     });
   }
 };
-
 const exportEmployees = async (req, res) => {
   try {
     const { position, gender, countryCode, minSalary, maxSalary } = req.query;
@@ -307,6 +320,77 @@ const exportEmployees = async (req, res) => {
   }
 };
 
+const downloadTemplate = async (req, res) => {
+  try {
+    // Fetch all employees to populate the template
+    const employees = await Employee.find().lean();
+
+    // Prepare formatted data for the template
+    const formattedData = employees.map((employee) => ({
+      employee_id: employee.employee_id || "",
+      name: employee.name || "",
+      email: employee.email || "",
+      phone: employee.phone || "",
+      salary: employee.salary || "",
+      position: employee.position || "",
+      dob: employee.dob ? moment(employee.dob).format("YYYY-MM-DD") : "", // Ensure the date is formatted correctly
+      gender: employee.gender || "",
+      countryCode: employee.countryCode || "",
+      nationality: employee.nationality || "",
+      passportNumber: employee.passportNumber || "",
+      address: employee.address || "",
+    }));
+
+    // Create a worksheet from the formatted data
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+
+    // Set custom column widths
+    worksheet["!cols"] = [
+      { wch: 15 }, // employee_id
+      { wch: 20 }, // name
+      { wch: 30 }, // email
+      { wch: 20 }, // phone
+      { wch: 12 }, // salary
+      { wch: 15 }, // position
+      { wch: 12 }, // dob
+      { wch: 10 }, // gender
+      { wch: 15 }, // countryCode
+      { wch: 15 }, // nationality
+      { wch: 20 }, // passportNumber
+      { wch: 30 }, // address
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Employees");
+
+    const timestamp = new Date().toISOString().replace(/[-:.]/g, "");
+    const fileName = `employee_import_template_${timestamp}.xlsx`;
+    const filePath = path.join("uploads", fileName);
+    XLSX.writeFile(workbook, filePath);
+
+    // Download the file
+    res.download(filePath, fileName, (err) => {
+      if (err) {
+        res.status(500).json({
+          message: "Error sending the file",
+          success: false,
+          statusCode: 500,
+          error: err.message,
+        });
+      }
+      // Optionally delete the file after sending
+      fs.unlinkSync(filePath);
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error generating the template",
+      success: false,
+      statusCode: 500,
+      error: error.message,
+    });
+  }
+};
+
 export {
   getEmployees,
   createEmployee,
@@ -314,4 +398,5 @@ export {
   deleteEmployee,
   importEmployees,
   exportEmployees,
+  downloadTemplate,
 };
