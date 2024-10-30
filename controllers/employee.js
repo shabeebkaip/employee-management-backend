@@ -6,22 +6,14 @@ import fs from "fs";
 import path from "path";
 import moment from "moment";
 
-const upload = multer({ dest: "uploads/" }); // Temporary storage for file uploads
-
 const getEmployees = async (req, res) => {
-  const { page = 1, limit = 10, search = "" } = req.query; // Destructure query params with defaults
+  const { page = 1, limit = 10, search = "" } = req.query;
 
   try {
-    const skip = (page - 1) * limit; // Calculate number of documents to skip
-    const searchRegex = new RegExp(search, "i"); // Create a case-insensitive regex for search
-
-    // Find employees with search filter and pagination
+    const skip = (page - 1) * limit;
+    const searchRegex = new RegExp(search, "i");
     const employees = await Employee.find({
-      $or: [
-        { name: searchRegex }, // Assuming employees have a 'name' field
-        { email: searchRegex }, // Assuming employees have an 'email' field
-        // Add other fields to search if needed
-      ],
+      $or: [{ name: searchRegex }, { email: searchRegex }],
     })
       .skip(skip)
       .limit(parseInt(limit))
@@ -160,7 +152,6 @@ const deleteEmployee = async (req, res) => {
 const importEmployees = async (req, res) => {
   console.log(req.file);
   try {
-    // Check if file is uploaded
     if (!req.file) {
       return res.status(400).json({
         message: "No file uploaded",
@@ -169,13 +160,10 @@ const importEmployees = async (req, res) => {
       });
     }
 
-    // Read the file using path module for compatibility
     const filePath = path.resolve(req.file.path);
     const workbook = XLSX.readFile(filePath);
-    const sheetName = workbook.SheetNames[0]; // First sheet
+    const sheetName = workbook.SheetNames[0];
     const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-    // Process each row in the file
     const operations = data
       .map((item) => {
         const {
@@ -193,7 +181,6 @@ const importEmployees = async (req, res) => {
           employee_id,
         } = item;
 
-        // Check required fields
         if (
           !email ||
           !name ||
@@ -205,7 +192,7 @@ const importEmployees = async (req, res) => {
           !countryCode ||
           !nationality
         ) {
-          return null; // Skip entries missing required fields
+          return null;
         }
 
         return {
@@ -231,20 +218,12 @@ const importEmployees = async (req, res) => {
         };
       })
       .filter(Boolean);
-
-    // Log operations for debugging
     console.log(operations);
-
-    // Perform bulkWrite operation
     if (operations.length > 0) {
       const result = await Employee.bulkWrite(operations);
-      console.log(result); // Log result to verify insertions and updates
+      console.log(result);
     }
-
-    // Cleanup uploaded file
     fs.unlinkSync(filePath);
-
-    // Return updated list of employees
     const employees = await Employee.find();
     res.status(200).json({
       message: "Employees imported and database updated successfully",
@@ -300,7 +279,6 @@ const exportEmployees = async (req, res) => {
 
     const worksheet = XLSX.utils.json_to_sheet(formattedData);
 
-    // Set custom column widths
     worksheet["!cols"] = [
       { wch: 15 }, // employee_id
       { wch: 20 }, // Name
@@ -332,7 +310,6 @@ const exportEmployees = async (req, res) => {
           error: err.message,
         });
       }
-      // Delete file after sending
       fs.unlinkSync(filePath);
     });
   } catch (error) {
@@ -347,10 +324,7 @@ const exportEmployees = async (req, res) => {
 
 const downloadTemplate = async (req, res) => {
   try {
-    // Fetch all employees to populate the template
     const employees = await Employee.find().lean();
-
-    // Prepare formatted data for the template
     const formattedData = employees.map((employee) => ({
       employee_id: employee.employee_id || "",
       name: employee.name || "",
@@ -358,7 +332,7 @@ const downloadTemplate = async (req, res) => {
       phone: employee.phone || "",
       salary: employee.salary || "",
       position: employee.position || "",
-      dob: employee.dob ? moment(employee.dob).format("YYYY-MM-DD") : "", // Ensure the date is formatted correctly
+      dob: employee.dob ? moment(employee.dob).format("YYYY-MM-DD") : "",
       gender: employee.gender || "",
       countryCode: employee.countryCode || "",
       nationality: employee.nationality || "",
@@ -366,10 +340,7 @@ const downloadTemplate = async (req, res) => {
       address: employee.address || "",
     }));
 
-    // Create a worksheet from the formatted data
     const worksheet = XLSX.utils.json_to_sheet(formattedData);
-
-    // Set custom column widths
     worksheet["!cols"] = [
       { wch: 15 }, // employee_id
       { wch: 20 }, // name
@@ -393,7 +364,6 @@ const downloadTemplate = async (req, res) => {
     const filePath = path.join("uploads", fileName);
     XLSX.writeFile(workbook, filePath);
 
-    // Download the file
     res.download(filePath, fileName, (err) => {
       if (err) {
         res.status(500).json({
@@ -403,7 +373,6 @@ const downloadTemplate = async (req, res) => {
           error: err.message,
         });
       }
-      // Optionally delete the file after sending
       fs.unlinkSync(filePath);
     });
   } catch (error) {
