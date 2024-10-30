@@ -52,9 +52,9 @@ const schema = new Schema(
       required: false,
     },
     employee_id: {
-        type: String,
-        required: true,
-    }
+      type: String,
+      required: true,
+    },
   },
   { timestamps: true }
 );

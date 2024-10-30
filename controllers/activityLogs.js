@@ -1,5 +1,4 @@
 import ActivityLog from "../model/ActivityLogs.js";
-import mongoose from "mongoose";
 
 const getActivityLogs = async (req, res) => {
   try {
