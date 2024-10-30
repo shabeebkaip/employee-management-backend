@@ -9,8 +9,28 @@ import moment from "moment";
 const upload = multer({ dest: "uploads/" }); // Temporary storage for file uploads
 
 const getEmployees = async (req, res) => {
+  const { page = 1, limit = 10, search = "" } = req.query; // Destructure query params with defaults
+
   try {
-    const employees = await Employee.find();
+    const skip = (page - 1) * limit; // Calculate number of documents to skip
+    const searchRegex = new RegExp(search, "i"); // Create a case-insensitive regex for search
+
+    // Find employees with search filter and pagination
+    const employees = await Employee.find({
+      $or: [
+        { name: searchRegex }, // Assuming employees have a 'name' field
+        { email: searchRegex }, // Assuming employees have an 'email' field
+        // Add other fields to search if needed
+      ],
+    })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .exec();
+
+    const totalEmployees = await Employee.countDocuments({
+      $or: [{ name: searchRegex }, { email: searchRegex }],
+    });
+
     return res.status(200).json({
       message:
         employees.length > 0
@@ -19,6 +39,11 @@ const getEmployees = async (req, res) => {
       data: employees,
       success: true,
       statusCode: 200,
+      pagination: {
+        total: totalEmployees,
+        totalPages: Math.ceil(totalEmployees / limit),
+        currentPage: parseInt(page),
+      },
     });
   } catch (error) {
     res.status(500).json({
