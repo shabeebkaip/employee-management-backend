@@ -1,4 +1,5 @@
 import Employee from "../model/employee.js";
+import mongoose from "mongoose";
 
 const getEmployees = async (req, res) => {
   try {
