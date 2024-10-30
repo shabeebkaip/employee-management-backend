@@ -16,6 +16,10 @@ import {
   createActivityLog,
 } from "./controllers/activityLogs.js";
 
+import { createUser, getUsers } from "./controllers/user.js";
+import adminLogin from "./controllers/auth.js";
+import { validateEmail } from "./middlewares/validateEmail.js";
+
 const router = express.Router();
 
 router.get("/test", (req, res) => {
@@ -34,5 +38,10 @@ router.get("/employees/template", downloadTemplate);
 //Activity logs routes
 router.get("/activityLogs", getActivityLogs);
 router.post("/activityLogs", createActivityLog);
+
+// User and Auth routes
+router.post("/users", validateEmail, createUser);
+router.get("/users", getUsers);
+router.post("/login", adminLogin);
 
 export default router;
