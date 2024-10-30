@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import router from "./Routes/routes.js";
+import router from "./routes.js";
 // import Admin from "./model/admin.js";
 // import User from "./model/users.js";
 // import bcrypt from "bcrypt";
