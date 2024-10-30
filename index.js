@@ -27,17 +27,6 @@ mongoose.connect(DB_URL).then(
   }
 );
 
-// const users = [
-//   { email: 'user12@gmail.com', isaId:"ISA456" },
-// ];
-// for (let user of users) {
-//   const salt = await bcrypt.genSalt(10);
-//   let password = '12356'
-//   password = await bcrypt.hash(password, salt);
-//   await Auth.insertMany({ email: user.email, password })
-// }
-// await User.insertMany(users);
-
 app.use(cors());
 app.use(express.json());
 
