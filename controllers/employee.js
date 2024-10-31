@@ -50,7 +50,15 @@ const getEmployees = async (req, res) => {
 const createEmployee = async (req, res) => {
   try {
     const employee = req.body;
-    const newEmployee = new Employee(employee);
+    const lastEmployee = await Employee.findOne()
+      .sort({ employee_id: -1 })
+      .exec();
+    const newEmployeeId = lastEmployee && lastEmployee.employee_id + 1;
+
+    const newEmployee = new Employee({
+      ...employee,
+      employee_id: newEmployeeId,
+    });
 
     await newEmployee.save();
     return res.status(201).json({
