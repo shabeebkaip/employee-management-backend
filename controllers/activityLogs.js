@@ -1,28 +1,40 @@
 import ActivityLog from "../model/ActivityLogs.js";
 
 const getActivityLogs = async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+
   try {
-    const activityLogs = await ActivityLog.find();
-    if (activityLogs.length === 0) {
-      return res.status(200).json({
-        success: true,
-        statusCode: 200,
-        data: [],
-        message: "No activity logs found",
-      });
-      D;
-    }
-    res.status(200).json({
+    const skip = (page - 1) * limit;
+    const activityLogs = await ActivityLog.find()
+      .skip(skip)
+      .limit(parseInt(limit))
+      .exec();
+
+    const totalLogs = await ActivityLog.countDocuments();
+    const totalPages = Math.ceil(totalLogs / limit);
+
+    return res.status(200).json({
       success: true,
       statusCode: 200,
-      data: activityLogs,
-      message: "Activity logs fetched successfully",
+      data: {
+        logs: activityLogs,
+        pagination: {
+          total: totalLogs,
+          totalPages,
+          currentPage: parseInt(page),
+        },
+      },
+      message:
+        activityLogs.length > 0
+          ? "Activity logs retrieved successfully"
+          : "No activity logs found",
     });
   } catch (error) {
-    res.status(404).json({
-      message: error.message,
+    res.status(500).json({
       success: false,
-      statusCode: 404,
+      statusCode: 500,
+      message: "Server error while retrieving activity logs",
+      error: error.message,
     });
   }
 };
@@ -49,4 +61,35 @@ const createActivityLog = async (req, res) => {
   }
 };
 
-export { getActivityLogs, createActivityLog };
+const deleteActivityLog = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const deletedLog = await ActivityLog.findByIdAndDelete(id);
+
+    if (!deletedLog) {
+      return res.status(404).json({
+        success: false,
+        statusCode: 404,
+        message: "Activity log not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: "Activity log deleted successfully",
+      data: deletedLog,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: "Server error while deleting activity log",
+      error: error.message,
+    });
+  }
+};
+
+export { getActivityLogs, createActivityLog, deleteActivityLog };
+

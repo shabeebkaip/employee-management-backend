@@ -14,6 +14,7 @@ import {
 import {
   getActivityLogs,
   createActivityLog,
+  deleteActivityLog,
 } from "./controllers/activityLogs.js";
 
 import { createUser, getUsers } from "./controllers/user.js";
@@ -38,6 +39,7 @@ router.get("/employees/template", downloadTemplate);
 //Activity logs routes
 router.get("/activityLogs", getActivityLogs);
 router.post("/activityLogs", createActivityLog);
+router.delete("/activityLogs/:id", deleteActivityLog);
 
 // User and Auth routes
 router.post("/users", validateEmail, createUser);
