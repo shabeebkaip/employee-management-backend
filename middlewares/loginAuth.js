@@ -24,7 +24,14 @@ export const verify = async (req, res, next) => {
   if (!auth) {
     return res.status(404).send({ message: "Invalid Email.", code: 2 });
   } else {
+    // Attach user details to req.body.userDetails, excluding password
     req.body.auth = auth;
+    req.body.userDetails = {
+      username: auth.name,
+      email: auth.email,
+      role: auth.role,
+      // Add more fields if needed
+    };
     next();
   }
 };
@@ -37,22 +44,21 @@ export const authenticate = async (req, res, next) => {
   if (result) {
     next();
   } else {
-    return res.status(401).send({ message: "Invalid  Password.", code: 3 });
+    return res.status(401).send({ message: "Invalid Password.", code: 3 });
   }
 };
 
 export const createJwt = (req, res, next) => {
-  const token = jwt.sign(
-    { id: req.body.email, crypt: req.body.auth.password },
-    process.env.JWT_KEY,
-    SIGN_OPTION()
-  );
-  if (token) {
-    req.body.token = token;
-    next();
-  } else {
-    return res
-      .status(500)
-      .send({ message: "Token generation failed.", code: 4 });
-  }
-};
+    const token = jwt.sign(
+      { id: req.body.userDetails.email, role: req.body.userDetails.role },
+      process.env.JWT_KEY,
+      SIGN_OPTION()
+    );
+    if (token) {
+      req.body.token = token;
+      next();
+    } else {
+      return res.status(500).send({ message: "Token generation failed.", code: 4 });
+    }
+  };
+  
