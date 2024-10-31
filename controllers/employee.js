@@ -53,7 +53,7 @@ const createEmployee = async (req, res) => {
     const lastEmployee = await Employee.findOne()
       .sort({ employee_id: -1 })
       .exec();
-    const newEmployeeId = lastEmployee && lastEmployee.employee_id + 1;
+    const newEmployeeId = lastEmployee && parseInt(lastEmployee.employee_id) + 1;
 
     const newEmployee = new Employee({
       ...employee,
