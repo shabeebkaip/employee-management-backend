@@ -53,7 +53,8 @@ const createEmployee = async (req, res) => {
     const lastEmployee = await Employee.findOne()
       .sort({ employee_id: -1 })
       .exec();
-    const newEmployeeId = lastEmployee && parseInt(lastEmployee.employee_id) + 1;
+    const newEmployeeId =
+      lastEmployee && parseInt(lastEmployee.employee_id) + 1;
 
     const newEmployee = new Employee({
       ...employee,
@@ -132,7 +133,7 @@ const deleteEmployee = async (req, res) => {
   }
 
   try {
-    const deletedEmployee = await Employee.findByIdAndRemove(id);
+    const deletedEmployee = await Employee.findByIdAndDelete(id); // Updated method
 
     if (!deletedEmployee) {
       return res.status(404).json({
