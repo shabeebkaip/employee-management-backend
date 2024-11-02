@@ -39,19 +39,32 @@ const createUser = async (req, res) => {
 };
 
 const getUsers = async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+
   try {
-    const users = await User.find();
+    const skip = (page - 1) * limit;
+    const users = await User.find().skip(skip).limit(parseInt(limit)).exec();
+
+    const totalUsers = await User.countDocuments();
+    const totalPages = Math.ceil(totalUsers / limit);
+
     res.status(200).json({
       success: true,
       statusCode: 200,
       data: users,
+      pagination: {
+        total: totalUsers,
+        totalPages,
+        currentPage: parseInt(page),
+      },
       message: "Users fetched successfully",
     });
   } catch (error) {
-    res.status(404).json({
-      message: error.message,
+    res.status(500).json({
+      message: "Error fetching users",
       success: false,
-      statusCode: 404,
+      statusCode: 500,
+      error: error.message,
     });
   }
 };
