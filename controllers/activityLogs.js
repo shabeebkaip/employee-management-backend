@@ -6,6 +6,7 @@ const getActivityLogs = async (req, res) => {
   try {
     const skip = (page - 1) * limit;
     const activityLogs = await ActivityLog.find()
+      .sort({ createdAt: -1 }) // Sort by latest first
       .skip(skip)
       .limit(parseInt(limit))
       .exec();
@@ -92,4 +93,3 @@ const deleteActivityLog = async (req, res) => {
 };
 
 export { getActivityLogs, createActivityLog, deleteActivityLog };
-
