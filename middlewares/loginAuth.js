@@ -12,7 +12,9 @@ const authJoi = Joi.object().keys({
 export const validate = (req, res, next) => {
   const result = authJoi.validate(req.body);
   if (result.error) {
-    return res.status(400).send({ message: result.error.message, code: 1 });
+    return res
+      .status(400)
+      .send({ message: result.error.message, success: false, statusCode: 400 });
   } else {
     next();
   }
@@ -22,7 +24,11 @@ export const verify = async (req, res, next) => {
     email: req.body.email.toLowerCase().trim(),
   });
   if (!auth) {
-    return res.status(404).send({ message: "Invalid Email.", code: 2 });
+    return res.status(404).send({
+      message: "User not found.",
+      success: false,
+      statusCode: 404,
+    });
   } else {
     // Attach user details to req.body.userDetails, excluding password
     req.body.auth = auth;
@@ -49,16 +55,17 @@ export const authenticate = async (req, res, next) => {
 };
 
 export const createJwt = (req, res, next) => {
-    const token = jwt.sign(
-      { id: req.body.userDetails.email, role: req.body.userDetails.role },
-      process.env.JWT_KEY,
-      SIGN_OPTION()
-    );
-    if (token) {
-      req.body.token = token;
-      next();
-    } else {
-      return res.status(500).send({ message: "Token generation failed.", code: 4 });
-    }
-  };
-  
+  const token = jwt.sign(
+    { id: req.body.userDetails.email, role: req.body.userDetails.role },
+    process.env.JWT_KEY,
+    SIGN_OPTION()
+  );
+  if (token) {
+    req.body.token = token;
+    next();
+  } else {
+    return res
+      .status(500)
+      .send({ message: "Token generation failed.", code: 4 });
+  }
+};
