@@ -17,7 +17,7 @@ import {
   deleteActivityLog,
 } from "./controllers/activityLogs.js";
 
-import { createUser, getUsers } from "./controllers/user.js";
+import { createUser, getUsers, deleteUser } from "./controllers/user.js";
 import adminLogin from "./controllers/auth.js";
 import { validateEmail } from "./middlewares/validateEmail.js";
 
@@ -44,6 +44,7 @@ router.delete("/activityLogs/:id", deleteActivityLog);
 // User and Auth routes
 router.post("/users", validateEmail, createUser);
 router.get("/users", getUsers);
+router.delete("/users/:id", deleteUser);
 router.post("/login", adminLogin);
 
 export default router;

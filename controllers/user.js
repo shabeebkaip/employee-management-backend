@@ -69,4 +69,32 @@ const getUsers = async (req, res) => {
   }
 };
 
-export { createUser, getUsers };
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findByIdAndDelete(id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        statusCode: 404,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error deleting user",
+      success: false,
+      statusCode: 500,
+      error: error.message,
+    });
+  }
+};
+
+export { createUser, getUsers, deleteUser };
