@@ -3,6 +3,7 @@ import cors from "cors";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import router from "./routes.js";
+import mysqlPool from "./config/db.js";
 // import Admin from "./model/admin.js";
 // import User from "./model/users.js";
 // import bcrypt from "bcrypt";
@@ -26,6 +27,15 @@ mongoose.connect(DB_URL).then(
     console.log("Unable to connect database");
   }
 );
+
+mysqlPool
+  .query("SELECT 1")
+  .then(() => {
+    console.log("MY Sql Database connected successfully");
+  })
+  .catch((err) => {
+    console.log("Unable to connect database", err);
+  });
 
 app.use(cors());
 app.use(express.json());

@@ -67,7 +67,6 @@ const deleteActivityLog = async (req, res) => {
 
   try {
     const deletedLog = await ActivityLog.findByIdAndDelete(id);
-
     if (!deletedLog) {
       return res.status(404).json({
         success: false,
