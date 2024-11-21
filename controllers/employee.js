@@ -403,14 +403,15 @@ const getEmployees = async (req, res) => {
 
   try {
     const skip = (page - 1) * limit;
+    console.log(skip);
     const [employees] = await db.query(
       `SELECT * FROM employees WHERE name LIKE '%${search}%' OR email LIKE '%${search}%' LIMIT ${skip},${limit}`
     );
 
-    const totalEmployees = await db.query(
+    const [totalEmployees] = await db.query(
       `SELECT COUNT(*) as total FROM employees WHERE name LIKE '%${search}%' OR email LIKE '%${search}%'`
     );
-
+    console.log(totalEmployees);
     return res.status(200).json({
       message:
         employees.length > 0
