@@ -1,17 +1,17 @@
 import ActivityLog from "../model/ActivityLogs.js";
+import db from "../config/db.js";
 
 const getActivityLogs = async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
 
   try {
     const skip = (page - 1) * limit;
-    const activityLogs = await ActivityLog.find()
-      .sort({ createdAt: -1 }) // Sort by latest first
-      .skip(skip)
-      .limit(parseInt(limit))
-      .exec();
+    const activityLogs = await db.query(
+      "SELECT * FROM activity_logs LIMIT ?, ?",
+      [skip, parseInt(limit)]
+    );
 
-    const totalLogs = await ActivityLog.countDocuments();
+    const totalLogs = await db.query("SELECT COUNT(*) FROM activity_logs");
     const totalPages = Math.ceil(totalLogs / limit);
 
     return res.status(200).json({
