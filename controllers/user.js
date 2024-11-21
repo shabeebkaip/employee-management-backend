@@ -1,13 +1,20 @@
 import User from "../model/user.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken"; // Import jwt
+import db from "../config/db.js";
 
 const createUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const existingUser = await User.findOne({ email });
-
-    if (existingUser) {
+    const { name, email, password } = req.body;
+    console.log(req.body, "req.body");
+    const [existingUser] = await db.query(
+      "SELECT * FROM users WHERE email = ?",
+      [email]
+    );
+    let [lastUserId] = await db.query("SELECT MAX(id) as id FROM users");
+    console.log(lastUserId[0].id);
+    let userid = lastUserId[0].id ? lastUserId[0].id + 1 : 1;
+    if (existingUser.length) {
       return res.status(400).json({
         success: false,
         statusCode: 400,
@@ -16,9 +23,10 @@ const createUser = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ ...req.body, password: hashedPassword });
-    await newUser.save();
-
+    const newUser = await db.query(
+      "INSERT INTO users (id, name, email, password) VALUES (?,?,?,?)",
+      [userid, name, email, hashedPassword]
+    );
     // Generate JWT token after user registration
     const token = jwt.sign(
       { id: newUser._id, email: newUser.email }, // Payload with user ID and email
