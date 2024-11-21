@@ -403,7 +403,6 @@ const getEmployees = async (req, res) => {
 
   try {
     const skip = (page - 1) * limit;
-    const searchRegex = new RegExp(search, "i");
     const [employees] = await db.query(
       `SELECT * FROM employees WHERE name LIKE '%${search}%' OR email LIKE '%${search}%' LIMIT ${skip},${limit}`
     );
@@ -495,7 +494,37 @@ const updateEmployee = async (req, res) => {
     });
   }
 };
-const deleteEmployee = async (req, res) => {};
+const deleteEmployee = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [deletedEmployee] = await db.query(
+      `DELETE FROM employees WHERE id = ?`,
+      id
+    );
+
+    if (deletedEmployee.affectedRows === 0) {
+      return res.status(404).json({
+        message: "Employee not found",
+        success: false,
+        statusCode: 404,
+      });
+    }
+
+    return res.status(200).json({
+      message: "Employee deleted successfully",
+      success: true,
+      statusCode: 200,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to delete employee",
+      success: false,
+      statusCode: 500,
+      error: error.message,
+    });
+  }
+};
 const importEmployees = async (req, res) => {};
 const exportEmployees = async (req, res) => {};
 const downloadTemplate = async (req, res) => {};
