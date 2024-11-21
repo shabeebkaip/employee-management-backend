@@ -525,9 +525,186 @@ const deleteEmployee = async (req, res) => {
     });
   }
 };
-const importEmployees = async (req, res) => {};
+const importEmployees = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        message: "No file uploaded",
+        success: false,
+        statusCode: 400,
+      });
+    }
+
+    const filePath = path.resolve(req.file.path);
+    const workbook = XLSX.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    // Validate data and filter out invalid rows
+    const validData = data.filter((item) => {
+      const {
+        id,
+        name,
+        email,
+        phone,
+        salary,
+        position,
+        dob,
+        gender,
+        countryCode,
+        nationality,
+      } = item;
+
+      // Validate all required fields, including `id`
+      return (
+        id && // Ensure `id` is present
+        name &&
+        email &&
+        phone &&
+        salary &&
+        position &&
+        dob &&
+        gender &&
+        countryCode &&
+        nationality
+      );
+    });
+
+    if (validData.length === 0) {
+      return res.status(400).json({
+        message: "No valid rows found in the uploaded file",
+        success: false,
+        statusCode: 400,
+      });
+    }
+
+    // Prepare data for SQL insertion
+    const values = validData.map((item) => [
+      item.id, // Include `id`
+      item.name,
+      item.email,
+      item.phone,
+      item.salary,
+      item.position,
+      new Date(item.dob), // Ensure proper date format
+      item.date ? new Date(item.date) : null, // Optional field
+      item.gender,
+      item.countryCode,
+      item.nationality,
+      item.passportNumber || null, // Default to null if missing
+      item.address || null, // Default to null if missing
+    ]);
+
+    // Insert or update using ON DUPLICATE KEY UPDATE
+    const query = `
+      INSERT INTO employees (
+        id, name, email, phone, salary, position, dob, date, gender, countryCode, nationality, passportNumber, address
+      )
+      VALUES ?
+      ON DUPLICATE KEY UPDATE
+        name = VALUES(name),
+        email = VALUES(email),
+        phone = VALUES(phone),
+        salary = VALUES(salary),
+        position = VALUES(position),
+        dob = VALUES(dob),
+        date = VALUES(date),
+        gender = VALUES(gender),
+        countryCode = VALUES(countryCode),
+        nationality = VALUES(nationality),
+        passportNumber = VALUES(passportNumber),
+        address = VALUES(address);
+    `;
+
+    // Execute the query
+    await db.query(query, [values]);
+
+    // Remove the file after processing
+    fs.unlinkSync(filePath);
+
+    // Fetch the updated data
+    const [employees] = await db.query(`SELECT * FROM employees`);
+
+    res.status(200).json({
+      message: "Employees imported and database updated successfully",
+      success: true,
+      statusCode: 200,
+      data: employees,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error processing the file",
+      success: false,
+      statusCode: 500,
+      error: error.message,
+    });
+  }
+};
+
 const exportEmployees = async (req, res) => {};
-const downloadTemplate = async (req, res) => {};
+const downloadTemplate = async (req, res) => {
+  try {
+    const [employees] = await db.query(`SELECT * FROM employees`);
+    const formattedData = employees.map((employee) => ({
+      id: employee.id || "",
+      name: employee.name || "",
+      email: employee.email || "",
+      phone: employee.phone || "",
+      salary: employee.salary || "",
+      position: employee.position || "",
+      dob: employee.dob ? moment(employee.dob).format("YYYY-MM-DD") : "",
+      date: employee.date ? moment(employee.date).format("YYYY-MM-DD") : "",
+      gender: employee.gender || "",
+      countryCode: employee.countryCode || "",
+      nationality: employee.nationality || "",
+      passportNumber: employee.passportNumber || "",
+      address: employee.address || "",
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+    worksheet["!cols"] = [
+      { wch: 15 }, // id
+      { wch: 20 }, // name
+      { wch: 30 }, // email
+      { wch: 20 }, // phone
+      { wch: 12 }, // salary
+      { wch: 15 }, // position
+      { wch: 12 }, // dob
+      { wch: 12 }, // date
+      { wch: 10 }, // gender
+      { wch: 15 }, // countryCode
+      { wch: 15 }, // nationality
+      { wch: 20 }, // passportNumber
+      { wch: 50 }, // address
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Employees");
+    const timestamp = new Date().toISOString().replace(/[-:.]/g, "");
+    const fileName = `employee_import_template_${timestamp}.xlsx`;
+    const filePath = path.join("uploads", fileName);
+    XLSX.writeFile(workbook, filePath);
+
+    res.download(filePath, fileName, (err) => {
+      if (err) {
+        res.status(500).json({
+          message: "Error sending the file",
+          success: false,
+          statusCode: 500,
+          error: err.message,
+        });
+      }
+      fs.unlinkSync(filePath);
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Error generating the template",
+      success: false,
+      statusCode: 500,
+      error: err.message,
+    });
+    console.log(err);
+  }
+};
 
 export {
   getEmployees,
